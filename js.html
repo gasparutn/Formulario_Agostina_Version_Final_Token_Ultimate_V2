@@ -752,8 +752,8 @@ else {
 
                         let progress = 0;
                         const interval = setInterval(() => {
-                            progress += 10;
-                            if (progress <= 90) {
+                            progress += 5;
+                            if (progress < 95) {
                                 progressBar.style.width = progress + '%';
                                 progressBar.textContent = progress + '%';
                                 // Calculate color: from blue (0%) to green (100%)
@@ -764,7 +764,7 @@ else {
                             } else {
                                 clearInterval(interval);
                             }
-                        }, 200);
+                        }, 150);
                         
                         this.dataset.progressInterval = interval;
                     } else {
@@ -1461,16 +1461,27 @@ else {
     const btnFinalizar = document.getElementById('btn-finalizar-upload');
     const loaderComprobante = document.getElementById('loader-comprobante');
 
-    // Clear progress interval and hide progress bar
     const submitButton = document.getElementById('btn-submit-comprobante-manual');
     if (submitButton && submitButton.dataset.progressInterval) {
         clearInterval(parseInt(submitButton.dataset.progressInterval));
-        const progressContainer = document.getElementById('progress-container-comprobante');
-        if (progressContainer) progressContainer.style.display = 'none';
     }
-    loaderComprobante.style.display = 'none'; // Ensure spinner is hidden
 
-    // Limpiar mensajes de error/éxito anteriores de esta sección
+    const progressContainer = document.getElementById('progress-container-comprobante');
+    const progressBar = document.getElementById('progress-bar-comprobante');
+
+    if (progressBar) {
+      progressBar.style.width = '100%';
+      progressBar.textContent = '100%';
+      progressBar.style.backgroundColor = '#28a745'; // Green for success
+    }
+
+    if (progressContainer) {
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+      }, 500); // Wait half a second before hiding
+    }
+    
+    loaderComprobante.style.display = 'none'; // Ensure spinner is hidden
     statusDiv.querySelectorAll('.mensaje').forEach(el => {
       // No borrar el mensaje de 'adeuda aptitud'
       if (el.closest && !el.closest('#aptitud-manual-seccion')) {
@@ -1501,10 +1512,12 @@ else {
         comprobanteSection.style.display = 'none';
       }
 
-      google.script.run
-        .withSuccessHandler(handleValidationSuccess) // El handler principal que redibuja todo
-        .withFailureHandler(handleValidationFailure)
-        .validarAcceso(dni, tipo);
+      setTimeout(() => {
+        google.script.run
+          .withSuccessHandler(handleValidationSuccess) // El handler principal que redibuja todo
+          .withFailureHandler(handleValidationFailure)
+          .validarAcceso(dni, tipo);
+      }, 3000); // 3 segundos de retraso para leer el mensaje.
       // --- FIN DE LA MODIFICACIÓN ---
 
     } else { // Si response.status es 'ERROR'
@@ -1525,7 +1538,7 @@ else {
   function iniciarTemporizador(response) {
     document.getElementById('timer-seccion').style.display = 'block';
     document.getElementById('btn-validar').disabled = true;
-    let segundos = 8;
+    let segundos = 5;
     const countdown = document.getElementById('timer-countdown');
     countdown.textContent = segundos;
     const interval = setInterval(() => {
@@ -1535,7 +1548,7 @@ else {
         clearInterval(interval);
         mostrarFormulario(response);
       }
-    }, 800);
+    }, 1000);
   }
 
   /**
@@ -1669,15 +1682,20 @@ else {
     toggleSubMetodoCuotas(); // (Llamada para el sub-método)
   }
 
-  function manejarSubidaArchivo(inputElement, tipoArchivo, nombreLabelId, loaderId, urlHiddenId) {
+  function manejarSubidaArchivo(inputElement, tipoArchivo, nombreLabelId, loaderId, urlHiddenId, progressContainerId, progressBarId) {
     const file = inputElement.files[0];
     const nombreLabel = document.getElementById(nombreLabelId);
     const loader = document.getElementById(loaderId);
     const urlHidden = document.getElementById(urlHiddenId);
     const dni = document.getElementById('dni').value;
 
+    // Progress bar elements
+    const progressContainer = progressContainerId ? document.getElementById(progressContainerId) : null;
+    const progressBar = progressBarId ? document.getElementById(progressBarId) : null;
+
     urlHidden.value = '';
-    loader.style.display = 'none';
+    if(loader) loader.style.display = 'none';
+    if(progressContainer) progressContainer.style.display = 'none';
     nombreLabel.textContent = 'Ningún archivo seleccionado';
     if (!file) return;
 
@@ -1688,27 +1706,62 @@ else {
     }
 
     nombreLabel.textContent = file.name;
-    loader.className = 'loader-archivo';
-    loader.style.display = 'block';
-    loader.textContent = 'Iniciando...';
-
     inputElement.disabled = true;
     document.getElementById('submit-button').disabled = true;
 
-    loader.textContent = 'Preparando archivo (comprimiendo si es imagen)...';
-    comprimirYLeerArchivo(file).then(fileData => { // Llama a js2.html
-      loader.textContent = 'Subiendo archivo...';
+    let progressInterval;
+
+    if (progressContainer && progressBar) {
+      loader.style.display = 'none';
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+      progressBar.style.backgroundColor = '#007bff';
+
+      let progress = 0;
+      progressInterval = setInterval(() => {
+        progress += 5;
+        if (progress < 95) {
+          progressBar.style.width = progress + '%';
+          progressBar.textContent = progress + '%';
+        } else {
+          clearInterval(progressInterval);
+        }
+      }, 150);
+    } else {
+      loader.className = 'loader-archivo';
+      loader.style.display = 'block';
+      loader.textContent = 'Iniciando...';
+    }
+
+    comprimirYLeerArchivo(file).then(fileData => {
+      if (!progressContainer) {
+        loader.textContent = 'Subiendo archivo...';
+      }
       google.script.run
         .withSuccessHandler(function (response) {
           inputElement.disabled = false;
           document.getElementById('submit-button').disabled = false;
+          
+          if (progressInterval) clearInterval(progressInterval);
+
           if (response.status === 'OK') {
-            loader.className = 'loader-archivo exito';
-            loader.textContent = '✅ Archivo subido con éxito.';
             urlHidden.value = response.url;
+            if (progressContainer && progressBar) {
+              progressBar.style.width = '100%';
+              progressBar.textContent = '100%';
+              progressBar.style.backgroundColor = '#28a745';
+              setTimeout(() => {
+                nombreLabel.textContent = file.name + ' (✅ Subido)';
+              }, 500);
+            } else {
+              loader.className = 'loader-archivo exito';
+              loader.textContent = '✅ Archivo subido con éxito.';
+            }
           } else {
+            if (progressContainer) progressContainer.style.display = 'none';
             loader.className = 'loader-archivo error';
-            loader.textContent = `❌ Error:   ${response.message}`;
+            loader.textContent = `❌ Error: ${response.message}`;
             inputElement.value = '';
             nombreLabel.textContent = 'Ningún archivo seleccionado';
           }
@@ -1716,8 +1769,11 @@ else {
         .withFailureHandler(function (error) {
           inputElement.disabled = false;
           document.getElementById('submit-button').disabled = false;
+          if (progressInterval) clearInterval(progressInterval);
+          if (progressContainer) progressContainer.style.display = 'none';
+          
           loader.className = 'loader-archivo error';
-          loader.textContent = `❌ Error de conexión:   ${error.message}`;
+          loader.textContent = `❌ Error de conexión: ${error.message}`;
           inputElement.value = '';
           nombreLabel.textContent = 'Ningún archivo seleccionado';
         })
@@ -1725,8 +1781,11 @@ else {
     }).catch(err => {
       inputElement.disabled = false;
       document.getElementById('submit-button').disabled = false;
+      if (progressInterval) clearInterval(progressInterval);
+      if (progressContainer) progressContainer.style.display = 'none';
+
       loader.className = 'loader-archivo error';
-      loader.textContent = `❌ Error al procesar el archivo:   ${err.message}`;
+      loader.textContent = `❌ Error al procesar el archivo: ${err.message}`;
       inputElement.value = '';
       nombreLabel.textContent = 'Ningún archivo seleccionado';
     });

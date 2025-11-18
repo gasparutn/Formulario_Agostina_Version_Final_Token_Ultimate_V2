@@ -30,10 +30,10 @@ google.script.run
 });
 
 document.getElementById('fotoCarnet').addEventListener('change', function() {
-manejarSubidaArchivo(this, 'foto', 'fotoCarnetName', 'loader-foto', 'urlFotoCarnet');
+manejarSubidaArchivo(this, 'foto', 'fotoCarnetName', 'loader-foto', 'urlFotoCarnet', 'progress-container-foto', 'progress-bar-foto');
 });
 document.getElementById('certificadoAptitud').addEventListener('change', function() {
-manejarSubidaArchivo(this, 'ficha', 'certificadoAptitudName', 'loader-certificado', 'urlCertificadoAptitud');
+manejarSubidaArchivo(this, 'ficha', 'certificadoAptitudName', 'loader-certificado', 'urlCertificadoAptitud', 'progress-container-certificado', 'progress-bar-certificado');
 });
 
 // (Punto 30) CORRECCIÓN: El listener se adjunta aquí al cargar la página y se cambia a 'input'

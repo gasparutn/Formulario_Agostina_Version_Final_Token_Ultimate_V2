@@ -494,6 +494,63 @@ function subirComprobanteManual(
         );
       }
 
+      let mensajeAlerta = "";
+      // VALIDACIÓN DE MÉTODO DE PAGO
+      if (metodoPagoHoja === 'Pago en Cuotas' && datosExtras.subMetodo) {
+        const subMetodoOriginal = rangoFilaPrincipal[COL_MODO_PAGO_CUOTA - 1];
+        if (subMetodoOriginal && subMetodoOriginal !== datosExtras.subMetodo) {
+          mensajeAlerta = "Usted ha indicado en el formulario de registro principal un medio para abonar que no condice al actual.<br>";
+          
+          try {
+            const emailAdmin = Session.getEffectiveUser().getEmail();
+            const asunto = "Alerta de Inconsistencia en Método de Pago";
+            
+            // Extraer datos de la fila para el cuerpo del email
+            const nombreTutor = rangoFilaPrincipal[COL_ADULTO_RESPONSABLE_1 - 1];
+            const dniTutor = rangoFilaPrincipal[COL_DNI_RESPONSABLE_1 - 1];
+            const nombreAlumno = nombreHoja + " " + apellidoHoja;
+            const dniAlumno = dniHoja;
+
+            const cuerpoEmail = `
+              <h2>Alerta de Inconsistencia en Método de Pago</h2>
+              <p>Se ha detectado una diferencia entre el método de pago elegido en el registro inicial y el método usado al subir el comprobante.</p>
+              <hr>
+              <h3>Detalles del Registro:</h3>
+              <ul>
+                <li><b>Alumno:</b> ${nombreAlumno}</li>
+                <li><b>DNI Alumno:</b> ${dniAlumno}</li>
+                <li><b>Adulto Responsable:</b> ${nombreTutor}</li>
+                <li><b>DNI Responsable:</b> ${dniTutor}</li>
+              </ul>
+              <h3>Detalles de la Inconsistencia:</h3>
+              <ul>
+                <li><b>Método de Pago (Registro Original):</b> ${subMetodoOriginal}</li>
+                <li><b>Método de Pago (Actual):</b> ${datosExtras.subMetodo}</li>
+              </ul>
+              <p><b>Comprobante subido:</b></p>
+              <p>Para ver el comprobante, copie y pegue la siguiente URL en su navegador (si no es un enlace directo):</p>
+              <p>${fileUrl.replace(/=HYPERLINK\("([^"]+)"\s*,\s*"([^"]+)"\)/, '<a href="$1">$2</a>')}</p>
+              <hr>
+              <p><i>Este es un correo automático. El proceso de registro del pago ha continuado normalmente.</i></p>
+            `;
+            
+            Logger.log(`Intentando enviar email de alerta a: ${emailAdmin}`);
+            Logger.log(`Asunto: ${asunto}`);
+
+            MailApp.sendEmail({
+              to: emailAdmin,
+              subject: asunto,
+              htmlBody: cuerpoEmail
+            });
+
+            Logger.log("Email de alerta enviado exitosamente.");
+
+          } catch (e) {
+            Logger.log(`Error al intentar enviar el email de alerta: ${e.toString()} - Stack: ${e.stack}`);
+          }
+        }
+      }
+
       // --- 6. Aplicar Cambios (Real) ---
       let mensajeExito = "";
       let resultadoPrincipal;
@@ -800,6 +857,8 @@ function subirComprobanteManual(
           }
         }
       }
+      
+      mensajeExito = mensajeAlerta + mensajeExito;
 
       Logger.log(
         `Comprobante subido para DNI ${dniLimpio}. Estado final: ${resultadoPrincipal.nuevoEstado}. ¿Familiar?: ${esPagoFamiliar}`

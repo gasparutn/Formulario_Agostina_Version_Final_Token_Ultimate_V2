@@ -165,6 +165,17 @@ function registrarDatos(datos, testSheetName) {
       return { status: 'ERROR', message: "Hoja de registros '" + hojaRegistroName + "' no encontrada." };
     }
 
+    // =========================================================
+    // --- (INICIO DE LA CORRECCIÓN BUG MONTO A PAGAR) ---
+    // Si el método es Efectivo o Transferencia, el monto a pagar inicial DEBE ser 0,
+    // ignorando lo que envíe el cliente. Solo se actualiza al subir comprobante.
+    if (datos.metodoPago === 'Pago Efectivo (Adm del Club)' || datos.metodoPago === 'Transferencia') {
+      datos.montoAPagar = 0;
+      Logger.log(`Forzando montoAPagar a 0 para método de pago: ${datos.metodoPago}`);
+    }
+    // --- (FIN DE LA CORRECCIÓN) ---
+    // =========================================================
+
     // Normalizar DNI
     const dniLimpio = limpiarDNI(datos.dni);
 
@@ -302,6 +313,7 @@ function registrarDatos(datos, testSheetName) {
 
     valoresFila[COL_NUMERO_TURNO - 1] = numeroDeTurno; // A
     valoresFila[COL_MARCA_TEMPORAL - 1] = new Date(); // B
+    valoresFila[COL_ENVIAR_EMAIL_MANUAL - 1] = true; // AR (Enviar Email Checkbox)
 
     const esPreventaReg = datos.esPreventa === true || datos.tipoInscripto === 'preventa';
     let marcaNE = '';
@@ -401,6 +413,14 @@ function registrarDatos(datos, testSheetName) {
     // Insertar la fila
     hojaRegistro.appendRow(valoresFila);
     const nuevaFila = hojaRegistro.getLastRow();
+
+    // --- (INICIO CORRECCIÓN CHECKBOX) ---
+    // Asegurar que la celda en la columna "Enviar Email" sea un checkbox.
+    const celdaEnviarEmail = hojaRegistro.getRange(nuevaFila, COL_ENVIAR_EMAIL_MANUAL);
+    const reglaCheckbox = SpreadsheetApp.newDataValidation().requireCheckbox().setAllowInvalid(false).build();
+    celdaEnviarEmail.setDataValidation(reglaCheckbox);
+    // El valor 'true' ya fue seteado en el array 'valoresFila', así que la celda aparecerá tildada.
+    // --- (FIN CORRECCIÓN CHECKBOX) ---
     
     // =========================================================
     // --- (INICIO DE LA MODIFICACIÓN v19) ---
@@ -868,7 +888,7 @@ function validarAcceso(dni, tipoInscripto) {
 /**
  * (MODIFICADO v15-CORREGIDO)
  */
-function configurarColumnaEnviarEmailComoCheckboxDeshabilitada() {
+function configurarColumnaEnviarEmail() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const hoja = ss.getSheetByName(NOMBRE_HOJA_REGISTRO);
@@ -877,7 +897,6 @@ function configurarColumnaEnviarEmailComoCheckboxDeshabilitada() {
     const lastRow = Math.max(hoja.getLastRow(), 2);
     const numRows = Math.max(1, lastRow - 1);
     
-    // (MODIFICADO v15) Esta constante (COL_ENVIAR_EMAIL_MANUAL) ahora apunta a la columna 45 (AS)
     const rango = hoja.getRange(2, COL_ENVIAR_EMAIL_MANUAL, numRows, 1);
 
     rango.clearContent();
@@ -886,11 +905,11 @@ function configurarColumnaEnviarEmailComoCheckboxDeshabilitada() {
     rango.setDataValidation(regla);
 
     const valores = [];
-    for (let i = 0; i < numRows; i++) valores.push([false]);
+    for (let i = 0; i < numRows; i++) valores.push([true]); // Default to TRUE
     rango.setValues(valores);
 
     try {
-      const proteccion = rango.protect().setDescription('Columna AS: checkbox deshabilitada por configuración.');
+      const proteccion = rango.protect().setDescription('Columna AR: Enviar Email');
       const me = Session.getEffectiveUser();
       proteccion.addEditor(me);
       const editors = proteccion.getEditors();
@@ -903,13 +922,13 @@ function configurarColumnaEnviarEmailComoCheckboxDeshabilitada() {
       });
       if (proteccion.canDomainEdit && proteccion.canDomainEdit()) proteccion.setDomainEdit(false);
     } catch (e) {
-      Logger.log('Advertencia: no se pudo aplicar protección a la columna AS: ' + e.message);
+      Logger.log('Advertencia: no se pudo aplicar protección a la columna AR: ' + e.message);
     }
 
-    return { status: 'OK', message: 'Columna AS configurada como casillas y deshabilitada (protección aplicada cuando fue posible).' };
+    return { status: 'OK', message: 'Columna AR configurada como casillas con valor TRUE por defecto.' };
   } catch (e) {
-    Logger.log('Error en configurarColumnaEnviarEmailComoCheckboxDeshabilitada: ' + e.message);
-    return { status: 'ERROR', message: 'Error al configurar la columna AS: ' + e.message };
+    Logger.log('Error en configurarColumnaEnviarEmail: ' + e.message);
+    return { status: 'ERROR', message: 'Error al configurar la columna AR: ' + e.message };
   }
 }
 

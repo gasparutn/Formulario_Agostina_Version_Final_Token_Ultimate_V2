@@ -67,10 +67,10 @@ const COL_COMPROBANTE_MANUAL_TOTAL_EXT = 40; // AN: Comprobante único
 const COL_COMPROBANTE_MANUAL_CUOTA1 = 41; // AO: Comprobante C1
 const COL_COMPROBANTE_MANUAL_CUOTA2 = 42; // AP: Comprobante C2
 const COL_COMPROBANTE_MANUAL_CUOTA3 = 43; // AQ: Comprobante C3
-const COL_VINCULO_PRINCIPAL = 44; // AR: VÍNCULO
-const COL_ENVIAR_EMAIL_MANUAL = 45; // AS: Enviar Email (Checkbox)
-const COL_ESTADO_EMAIL_ENVIADO = 46; // AT: False Envía/Email True Enviado
-const COL_EDIT_TOKEN = 47; // AU: Token
+const COL_ENVIAR_EMAIL_MANUAL = 44; // AR: Enviar Email
+const COL_RESERVA_1 = 45; // AS: Reserva 1
+const COL_RESERVA_2 = 46; // AT: Reserva 2
+const COL_VINCULO_PRINCIPAL = 47; // AU: VINCULO
 // --- FIN DE LISTA (47 COLUMNAS) ---
 
 
