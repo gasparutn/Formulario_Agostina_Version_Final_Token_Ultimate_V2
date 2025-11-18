@@ -68,7 +68,7 @@ const COL_COMPROBANTE_MANUAL_CUOTA1 = 41; // AO: Comprobante C1
 const COL_COMPROBANTE_MANUAL_CUOTA2 = 42; // AP: Comprobante C2
 const COL_COMPROBANTE_MANUAL_CUOTA3 = 43; // AQ: Comprobante C3
 const COL_ENVIAR_EMAIL_MANUAL = 44; // AR: Enviar Email
-const COL_RESERVA_1 = 45; // AS: Reserva 1
+const COL_RESERVA_1 = 45; // AS: Fecha y Hora
 const COL_RESERVA_2 = 46; // AT: Reserva 2
 const COL_VINCULO_PRINCIPAL = 47; // AU: VINCULO
 // --- FIN DE LISTA (47 COLUMNAS) ---
