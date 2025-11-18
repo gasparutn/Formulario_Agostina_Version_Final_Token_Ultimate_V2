@@ -19,7 +19,7 @@ function determinarGrupoPorFecha(fechaNacStr) {
 
   try {
     const fechaNac = new Date(fechaNacStr + "T00:00:00Z");
-    const mesCorte = 6; // Julio (0-11)
+    const mesCorte = 5; // Junio (0-11)
     const diaCorte = 30;
 
     if (fechaNac >= new Date(Date.UTC(2022, mesCorte, diaCorte)) && fechaNac < new Date(Date.UTC(2023, mesCorte, diaCorte))) return "Grupo 3 años";
